@@ -1,24 +1,738 @@
----
-title: app.json / app.config.js
-description: A reference of available properties in Expo app config.
-maxHeadingDepth: 5
----
+```javascript
+import React, { useMemo, useState } from "react";
+import {
+  Alert,
+  Modal,
+  Pressable,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 
-import { BookOpen02Icon } from '@expo/styleguide-icons/outline/BookOpen02Icon';
+const COLORS = {
+  navy: "#101828",
+  yellow: "#F4C542",
+  background: "#F7F8FA",
+  white: "#FFFFFF",
+  text: "#101828",
+  muted: "#667085",
+  border: "#E4E7EC",
+  green: "#12B76A",
+  red: "#F04438",
+};
 
-import schema from '~/public/static/schemas/v54.0.0/app-config-schema.json';
-import AppConfigSchemaTable from '~/ui/components/AppConfigSchemaTable';
-import { BoxLink } from '~/ui/components/BoxLink';
+const SERVICES = [
+  { id: "fuel", icon: "⛽", name: "Fuel", description: "Find fuel stations near you" },
+  { id: "wash", icon: "🚿", name: "Car Wash", description: "Find and book a car wash" },
+  { id: "food", icon: "🍽️", name: "Restaurants", description: "Discover places to eat" },
+  { id: "hotel", icon: "🏨", name: "Hotels", description: "Find accommodation" },
+  { id: "road", icon: "🚗", name: "Road Help", description: "Get help when you need it" },
+  { id: "nearby", icon: "📍", name: "Nearby", description: "Explore services around you" },
+];
 
-The following is a list of properties that are available for you under the `"expo"` key in **app.json** or **app.config.json**. These properties can be passed to the top level object of **app.config.js** or **app.config.ts**.
+const PLACES = [
+  {
+    id: 1,
+    name: "Paushe Fuel Station",
+    category: "Fuel",
+    icon: "⛽",
+    distance: "0.8 km",
+    rating: "4.7",
+    price: "KES 190/L",
+  },
+  {
+    id: 2,
+    name: "Quick Shine Car Wash",
+    category: "Car Wash",
+    icon: "🚿",
+    distance: "1.2 km",
+    rating: "4.6",
+    price: "From KES 500",
+  },
+  {
+    id: 3,
+    name: "Paushe Bites",
+    category: "Restaurant",
+    icon: "🍽️",
+    distance: "1.7 km",
+    rating: "4.8",
+    price: "KES 500–1,500",
+  },
+  {
+    id: 4,
+    name: "Paushe Stay",
+    category: "Hotel",
+    icon: "🏨",
+    distance: "2.4 km",
+    rating: "4.5",
+    price: "From KES 3,500",
+  },
+  {
+    id: 5,
+    name: "City Road Rescue",
+    category: "Road Help",
+    icon: "🛠️",
+    distance: "2.8 km",
+    rating: "4.9",
+    price: "From KES 1,000",
+  },
+];
 
-<BoxLink
-  title="Configuration with app config"
-  description="For information on app configuration, the differences between various app config files, and how to use them dynamically."
-  href="/workflow/configuration/"
-  Icon={BookOpen02Icon}
-/>
+export default function App() {
+  const [screen, setScreen] = useState("home");
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedPlace, setSelectedPlace] = useState(null);
+  const [search, setSearch] = useState("");
+  const [bookingVisible, setBookingVisible] = useState(false);
+  const [bookingName, setBookingName] = useState("");
+  const [bookingDate, setBookingDate] = useState("");
+  const [bookingPhone, setBookingPhone] = useState("");
+  const [bookings, setBookings] = useState([]);
 
-## Properties
+  const filteredPlaces = useMemo(() => {
+    const term = search.trim().toLowerCase();
 
-<AppConfigSchemaTable schema={schema} />
+    if (!term) return PLACES;
+
+    return PLACES.filter(
+      (place) =>
+        place.name.toLowerCase().includes(term) ||
+        place.category.toLowerCase().includes(term)
+    );
+  }, [search]);
+
+  function openService(service) {
+    if (service.id === "road") {
+      setScreen("road");
+      return;
+    }
+
+    setSelectedService(service);
+    setScreen("services");
+  }
+
+  function openPlace(place) {
+    setSelectedPlace(place);
+    setScreen("details");
+  }
+
+  function createBooking() {
+    if (!bookingName || !bookingPhone || !bookingDate) {
+      Alert.alert(
+        "Complete booking",
+        "Please enter your name, phone number and preferred date."
+      );
+      return;
+    }
+
+    const booking = {
+      id: Date.now(),
+      place: selectedPlace?.name || "My Paushe Service",
+      name: bookingName,
+      phone: bookingPhone,
+      date: bookingDate,
+      status: "Pending",
+    };
+
+    setBookings((current) => [booking, ...current]);
+
+    setBookingVisible(false);
+    setBookingName("");
+    setBookingPhone("");
+    setBookingDate("");
+
+    Alert.alert(
+      "Booking received",
+      "Your My Paushe booking request has been created."
+    );
+  }
+
+  function requestRoadHelp() {
+    Alert.alert(
+      "Road assistance",
+      "Your roadside assistance request has been started. The production version will connect you with verified roadside partners."
+    );
+  }
+
+  function payWithMpesa() {
+    Alert.alert(
+      "M-Pesa",
+      "The M-Pesa button is ready for integration. The production version will connect this to M-Pesa Daraja."
+    );
+  }
+
+  function Header({ title, back = false }) {
+    return (
+      <View style={styles.header}>
+        {back ? (
+          <Pressable
+            style={styles.backButton}
+            onPress={() => setScreen("home")}
+          >
+            <Text style={styles.backText}>‹</Text>
+          </Pressable>
+        ) : (
+          <View style={styles.logoSmall}>
+            <Text style={styles.logoSmallText}>P</Text>
+          </View>
+        )}
+
+        <Text style={styles.headerTitle}>{title}</Text>
+
+        <Pressable
+          style={styles.headerIcon}
+          onPress={() => setScreen("profile")}
+        >
+          <Text style={styles.headerIconText}>👤</Text>
+        </Pressable>
+      </View>
+    );
+  }
+
+  function HomeScreen() {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.homeTop}>
+          <View>
+            <Text style={styles.smallGreeting}>WELCOME TO</Text>
+            <Text style={styles.brand}>My Paushe</Text>
+          </View>
+
+          <Pressable
+            style={styles.profileCircle}
+            onPress={() => setScreen("profile")}
+          >
+            <Text style={styles.profileEmoji}>👤</Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.tagline}>
+          Your journey. Your services. One app.
+        </Text>
+
+        <View style={styles.hero}>
+          <View style={styles.heroBadge}>
+            <Text style={styles.heroBadgeText}>MY PAUSHE</Text>
+          </View>
+
+          <Text style={styles.heroTitle}>
+            Everything you need{"\n"}while on the road.
+          </Text>
+
+          <Text style={styles.heroDescription}>
+            Find fuel, food, hotels, car washes and roadside help around you.
+          </Text>
+
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => setScreen("nearby")}
+          >
+            <Text style={styles.primaryButtonText}>
+              📍 Find services near me
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionTitle}>What do you need?</Text>
+
+        <View style={styles.serviceGrid}>
+          {SERVICES.map((service) => (
+            <Pressable
+              key={service.id}
+              style={styles.serviceCard}
+              onPress={() => openService(service)}
+            >
+              <View style={styles.serviceIcon}>
+                <Text style={styles.serviceEmoji}>{service.icon}</Text>
+              </View>
+
+              <Text style={styles.serviceName}>{service.name}</Text>
+
+              <Text style={styles.serviceDescription}>
+                {service.description}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <View style={styles.adCard}>
+          <Text style={styles.adLabel}>PAUSHE PROMOTION</Text>
+
+          <Text style={styles.adTitle}>
+            Discover great local businesses.
+          </Text>
+
+          <Text style={styles.adText}>
+            Businesses can promote their services directly to My Paushe users.
+          </Text>
+
+          <Pressable
+            style={styles.adButton}
+            onPress={() =>
+              Alert.alert(
+                "Advertising",
+                "Business advertising will be available in the partner version."
+              )
+            }
+          >
+            <Text style={styles.adButtonText}>Learn more</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    );
+  }
+
+  function SearchBar() {
+    return (
+      <View style={styles.searchBox}>
+        <Text style={styles.searchIcon}>🔎</Text>
+
+        <TextInput
+          value={search}
+          onChangeText={setSearch}
+          placeholder="Search services..."
+          placeholderTextColor="#98A2B3"
+          style={styles.searchInput}
+        />
+      </View>
+    );
+  }
+
+  function NearbyScreen() {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Header title="Nearby Services" />
+
+        <SearchBar />
+
+        <View style={styles.locationCard}>
+          <View style={styles.locationIcon}>
+            <Text>📍</Text>
+          </View>
+
+          <View style={{ flex: 1 }}>
+            <Text style={styles.locationTitle}>Your location</Text>
+
+            <Text style={styles.locationText}>
+              Location services will show businesses closest to you.
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>Recommended near you</Text>
+
+        {filteredPlaces.map((place) => (
+          <PlaceCard
+            key={place.id}
+            place={place}
+            onPress={() => openPlace(place)}
+          />
+        ))}
+
+        {filteredPlaces.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>🔎</Text>
+            <Text style={styles.emptyTitle}>No services found</Text>
+            <Text style={styles.emptyText}>
+              Try searching for fuel, restaurants, hotels or car wash.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    );
+  }
+
+  function PlaceCard({ place, onPress }) {
+    return (
+      <Pressable style={styles.placeCard} onPress={onPress}>
+        <View style={styles.placeIcon}>
+          <Text style={styles.placeEmoji}>{place.icon}</Text>
+        </View>
+
+        <View style={styles.placeInfo}>
+          <Text style={styles.placeName}>{place.name}</Text>
+
+          <Text style={styles.placeCategory}>{place.category}</Text>
+
+          <View style={styles.placeMeta}>
+            <Text style={styles.rating}>★ {place.rating}</Text>
+            <Text style={styles.dot}>•</Text>
+            <Text style={styles.distance}>{place.distance}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.chevron}>›</Text>
+      </Pressable>
+    );
+  }
+
+  function ServicesScreen() {
+    const relevant =
+      selectedService?.id === "nearby"
+        ? PLACES
+        : PLACES.filter(
+            (place) =>
+              place.category.toLowerCase().replace(" ", "") ===
+              selectedService?.name.toLowerCase().replace(" ", "")
+          );
+
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Header title={selectedService?.name || "Services"} back />
+
+        <View style={styles.serviceIntro}>
+          <Text style={styles.bigServiceEmoji}>
+            {selectedService?.icon || "📍"}
+          </Text>
+
+          <Text style={styles.bigTitle}>
+            {selectedService?.name || "Services"}
+          </Text>
+
+          <Text style={styles.bigDescription}>
+            {selectedService?.description ||
+              "Explore available services around you."}
+          </Text>
+        </View>
+
+        {relevant.map((place) => (
+          <PlaceCard
+            key={place.id}
+            place={place}
+            onPress={() => openPlace(place)}
+          />
+        ))}
+
+        {relevant.length === 0 && (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>🚧</Text>
+
+            <Text style={styles.emptyTitle}>Coming soon</Text>
+
+            <Text style={styles.emptyText}>
+              Verified partners in this category will appear here.
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    );
+  }
+
+  function DetailsScreen() {
+    if (!selectedPlace) return null;
+
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Header title="Service Details" back />
+
+        <View style={styles.detailHero}>
+          <Text style={styles.detailEmoji}>{selectedPlace.icon}</Text>
+        </View>
+
+        <Text style={styles.detailTitle}>{selectedPlace.name}</Text>
+
+        <View style={styles.detailRow}>
+          <Text style={styles.detailCategory}>
+            {selectedPlace.category}
+          </Text>
+
+          <Text style={styles.detailRating}>
+            ★ {selectedPlace.rating}
+          </Text>
+        </View>
+
+        <View style={styles.infoGrid}>
+          <View style={styles.infoBox}>
+            <Text style={styles.infoIcon}>📍</Text>
+            <Text style={styles.infoLabel}>Distance</Text>
+            <Text style={styles.infoValue}>
+              {selectedPlace.distance}
+            </Text>
+          </View>
+
+          <View style={styles.infoBox}>
+            <Text style={styles.infoIcon}>💰</Text>
+            <Text style={styles.infoLabel}>Price</Text>
+            <Text style={styles.infoValue}>
+              {selectedPlace.price}
+            </Text>
+          </View>
+        </View>
+
+        <Text style={styles.sectionTitle}>About this service</Text>
+
+        <Text style={styles.longText}>
+          This is a My Paushe partner listing. In the production application,
+          users will see verified business information, opening hours,
+          directions, photos, available services and real-time availability.
+        </Text>
+
+        <Pressable
+          style={styles.primaryButton}
+          onPress={() => setBookingVisible(true)}
+        >
+          <Text style={styles.primaryButtonText}>
+            📅 Book this service
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.mpesaButton}
+          onPress={payWithMpesa}
+        >
+          <Text style={styles.mpesaButtonText}>
+            💳 Pay with M-Pesa
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={styles.outlineButton}
+          onPress={() =>
+            Alert.alert(
+              "Directions",
+              "The production version will open navigation using your preferred maps provider."
+            )
+          }
+        >
+          <Text style={styles.outlineButtonText}>
+            🗺️ Get directions
+          </Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  function RoadHelpScreen() {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Header title="Road Assistance" back />
+
+        <View style={styles.emergencyCard}>
+          <Text style={styles.emergencyEmoji}>🚗</Text>
+
+          <Text style={styles.emergencyTitle}>
+            Need help on the road?
+          </Text>
+
+          <Text style={styles.emergencyText}>
+            Request assistance for breakdowns, flat tyres, battery problems
+            and other roadside situations.
+          </Text>
+
+          <Pressable
+            style={styles.emergencyButton}
+            onPress={requestRoadHelp}
+          >
+            <Text style={styles.emergencyButtonText}>
+              Request roadside help
+            </Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.sectionTitle}>Available help</Text>
+
+        {[
+          ["🔋", "Battery jump start"],
+          ["🛞", "Flat tyre assistance"],
+          ["⛽", "Emergency fuel"],
+          ["🔧", "Mechanical assistance"],
+          ["🚚", "Vehicle towing"],
+        ].map(([icon, title]) => (
+          <View key={title} style={styles.helpRow}>
+            <Text style={styles.helpIcon}>{icon}</Text>
+
+            <Text style={styles.helpTitle}>{title}</Text>
+
+            <Text style={styles.chevron}>›</Text>
+          </View>
+        ))}
+      </ScrollView>
+    );
+  }
+
+  function ProfileScreen() {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Header title="My Account" back />
+
+        <View style={styles.profileHeader}>
+          <View style={styles.largeProfile}>
+            <Text style={styles.largeProfileText}>👤</Text>
+          </View>
+
+          <Text style={styles.profileName}>
+            My Paushe User
+          </Text>
+
+          <Text style={styles.profileEmail}>
+            Welcome to My Paushe
+          </Text>
+        </View>
+
+        <View style={styles.accountCard}>
+          {[
+            ["📅", "My bookings", `${bookings.length} booking(s)`],
+            ["💳", "Payments", "M-Pesa & other payments"],
+            ["⭐", "My reviews", "Reviews and ratings"],
+            ["🔔", "Notifications", "Manage alerts"],
+            ["🛡️", "Privacy & security", "Protect your account"],
+            ["💬", "Help & support", "Contact My Paushe"],
+          ].map(([icon, title, subtitle]) => (
+            <Pressable
+              key={title}
+              style={styles.accountRow}
+              onPress={() => {
+                if (title === "My bookings") {
+                  setScreen("bookings");
+                } else {
+                  Alert.alert(title, subtitle);
+                }
+              }}
+            >
+              <Text style={styles.accountIcon}>{icon}</Text>
+
+              <View style={{ flex: 1 }}>
+                <Text style={styles.accountTitle}>{title}</Text>
+
+                <Text style={styles.accountSubtitle}>
+                  {subtitle}
+                </Text>
+              </View>
+
+              <Text style={styles.chevron}>›</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        <Pressable
+          style={styles.partnerButton}
+          onPress={() =>
+            Alert.alert(
+              "Become a partner",
+              "Businesses will be able to register, list services and advertise on My Paushe."
+            )
+          }
+        >
+          <Text style={styles.partnerButtonText}>
+            🏪 Become a My Paushe partner
+          </Text>
+        </Pressable>
+      </ScrollView>
+    );
+  }
+
+  function BookingsScreen() {
+    return (
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <Header title="My Bookings" back />
+
+        {bookings.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyEmoji}>📅</Text>
+
+            <Text style={styles.emptyTitle}>
+              No bookings yet
+            </Text>
+
+            <Text style={styles.emptyText}>
+              Your bookings will appear here after you book a service.
+            </Text>
+          </View>
+        ) : (
+          bookings.map((booking) => (
+            <View key={booking.id} style={styles.bookingCard}>
+              <View style={styles.bookingTop}>
+                <Text style={styles.bookingTitle}>
+                  {booking.place}
+                </Text>
+
+                <Text style={styles.pending}>
+                  {booking.status}
+                </Text>
+              </View>
+
+              <Text style={styles.bookingText}>
+                📅 {booking.date}
+              </Text>
+
+              <Text style={styles.bookingText}>
+                👤 {booking.name}
+              </Text>
+
+              <Text style={styles.bookingText}>
+                📱 {booking.phone}
+              </Text>
+            </View>
+          ))
+        )}
+      </ScrollView>
+    );
+  }
+
+  function BottomNavigation() {
+    if (screen === "details" || screen === "services") {
+      return null;
+    }
+
+    return (
+      <View style={styles.bottomNav}>
+        <NavButton
+          icon="⌂"
+          label="Home"
+          active={screen === "home"}
+          onPress={() => setScreen("home")}
+        />
+
+        <NavButton
+          icon="📍"
+          label="Nearby"
+          active={screen === "nearby"}
+          onPress={() => setScreen("nearby")}
+        />
+
+        <Pressable
+          style={styles.roadButton}
+          onPress={() => setScreen("road")}
+        >
+          <Text style={styles.roadButtonIcon}>🚗</Text>
+        </Pressable>
+
+        <NavButton
+          icon="📅"
+          label="Bookings"
+          active={screen === "bookings"}
+          onPress={() => setScreen("bookings")}
+        />
+
+        <NavButton
+          icon="👤"
+          label="Profile"
+          active={screen === "profile"}
+          onPress={() => setScreen("profile")}
+        
